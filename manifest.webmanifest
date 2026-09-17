@@ -1,6 +1,6 @@
 {
-  "name": "K14 현장 탄도계산기",
-  "short_name": "K14 탄도",
+  "name": "SWS탄도계산기",
+  "short_name": "SWS탄도계산기",
   "lang": "ko",
   "start_url": "./",
   "scope": "./",
