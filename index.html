@@ -1,0 +1,1072 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#17201C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="K14 탄도">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="icon" href="./icon-192.png">
+<title>K14 현장 탄도계산기</title>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<style>
+:root{
+  --ground:#EEF0EC; --surface:#FFFFFF; --sunk:#F5F6F3; --ink:#17201C; --muted:#5D6862; --line:#D5DAD4;
+  --accent:#2F5D62; --accent-ink:#FFFFFF; --accent-soft:#DCE8E8;
+  --hero:#17201C; --hero-ink:#F2F5F3; --hero-muted:#9FB0A8; --hero-line:#2E3A35;
+  --warn:#9A6A12; --warn-soft:#F6EAD0; --bad:#B3261E; --good:#2E7D4F;
+  --impact:#C2410C; --mpi:#2F5D62; --steel:#9AA39F; --paper:#FBFBF8; --ring:#5D6862;
+  --sans:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0F1412; --surface:#18201D; --sunk:#131A17; --ink:#E3E9E5; --muted:#98A49E; --line:#2B3531;
+    --accent:#86B8BD; --accent-ink:#0E1614; --accent-soft:#223436;
+    --hero:#1F2925; --hero-ink:#F2F5F3; --hero-muted:#9FB0A8; --hero-line:#33403B;
+    --warn:#E0B25A; --warn-soft:#3A2F17; --bad:#F08A80; --good:#6FC795;
+    --impact:#FB923C; --mpi:#86B8BD; --steel:#56615C; --paper:#222B27; --ring:#98A49E;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0F1412; --surface:#18201D; --sunk:#131A17; --ink:#E3E9E5; --muted:#98A49E; --line:#2B3531;
+  --accent:#86B8BD; --accent-ink:#0E1614; --accent-soft:#223436;
+  --hero:#1F2925; --hero-ink:#F2F5F3; --hero-muted:#9FB0A8; --hero-line:#33403B;
+  --warn:#E0B25A; --warn-soft:#3A2F17; --bad:#F08A80; --good:#6FC795;
+  --impact:#FB923C; --mpi:#86B8BD; --steel:#56615C; --paper:#222B27; --ring:#98A49E;
+}
+.app[data-night="1"]{
+  --ground:#000000; --surface:#0B0000; --sunk:#050000; --ink:#D23A2E; --muted:#8A2A22; --line:#2A0805;
+  --accent:#D23A2E; --accent-ink:#000000; --accent-soft:#1E0503;
+  --hero:#0B0000; --hero-ink:#E0463A; --hero-muted:#8A2A22; --hero-line:#2A0805;
+  --warn:#D23A2E; --warn-soft:#1E0503; --bad:#E0463A; --good:#D23A2E; --impact:#FF5A4A; --mpi:#8A2A22; --steel:#2A0805; --paper:#0B0000; --ring:#8A2A22;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--ground)}
+body{color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;margin:0}
+.app{background:var(--ground);color:var(--ink);min-height:100%}
+.wrap{max-width:720px;margin:0 auto;padding-inline:16px;padding-block:14px 110px;display:flex;flex-direction:column;gap:14px}
+.view{display:flex;flex-direction:column;gap:14px}
+.top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.top h1{font-size:1rem;margin:0;flex:1;letter-spacing:-.01em}
+.top select{flex:1 1 100%;order:3}
+.iconbtn{font:inherit;font-size:.8rem;font-weight:600;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;white-space:nowrap}
+.iconbtn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+.solution{background:var(--hero);color:var(--hero-ink);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.dials{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--hero-line);border-radius:10px;overflow:hidden}
+.dial{background:var(--hero);padding:8px 4px;display:flex;flex-direction:column;align-items:flex-start}
+.dial .k{font-size:.72rem;color:var(--hero-muted);letter-spacing:.04em}
+.dial .v{font-family:var(--mono);font-size:clamp(2.1rem,11vw,3.2rem);font-weight:600;line-height:1.05;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.dial .v small{font-size:.45em;font-weight:500;margin-left:4px;color:var(--hero-muted)}
+.dial .c{font-family:var(--mono);font-size:.85rem;color:var(--hero-muted)}
+.dial:nth-child(2){padding-left:14px}
+.meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-family:var(--mono);font-size:.78rem;color:var(--hero-muted);font-variant-numeric:tabular-nums}
+.meta b{color:var(--hero-ink);font-weight:500}
+.status{font-size:.75rem;color:var(--hero-muted)}
+.sendbtn{font:inherit;font-weight:600;font-size:.95rem;padding:11px;border-radius:10px;border:0;background:var(--hero-ink);color:var(--hero);cursor:pointer}
+
+section.card,.card-plain{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px}
+.card h2,.card-plain h2{font-size:.78rem;margin:0;color:var(--muted);font-weight:600;letter-spacing:.06em;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (min-width:560px){ .grid{grid-template-columns:repeat(4,minmax(0,1fr))} }
+label{display:flex;flex-direction:column;gap:3px;font-size:.76rem;color:var(--muted);min-width:0}
+input,select,textarea{font:inherit;font-family:var(--mono);font-size:1.05rem;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--sunk);color:var(--ink);width:100%;min-width:0}
+select{font-family:var(--sans);font-size:.95rem}
+textarea{font-size:.78rem;min-height:120px;resize:vertical}
+input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+label.chk{flex-direction:row;align-items:center;gap:8px;font-size:.88rem;color:var(--ink)}
+label.chk input{width:22px;height:22px;flex:none}
+.span2{grid-column:span 2}
+.stepper{display:grid;grid-template-columns:52px 1fr 52px;gap:6px;align-items:end}
+.stepper button{font:inherit;font-family:var(--mono);font-size:1rem;font-weight:600;height:46px;border-radius:8px;border:1px solid var(--line);background:var(--sunk);color:var(--ink);cursor:pointer}
+.stepper input{font-size:1.5rem;text-align:center;height:46px;font-weight:600}
+.derived{font-family:var(--mono);font-size:.78rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:2px 14px;font-variant-numeric:tabular-nums}
+.derived b{color:var(--ink);font-weight:500}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{font:inherit;font-size:.85rem;font-weight:600;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--sunk);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--bad)}
+.btn.wide{flex:1;padding:12px}
+.hint{font-size:.76rem;color:var(--muted);margin:0}
+.flag{font-size:.68rem;font-weight:700;color:var(--warn);background:var(--warn-soft);padding:0 6px;border-radius:4px}
+.toast{font-size:.78rem;color:var(--accent);min-height:1.2em;letter-spacing:0;font-weight:500}
+
+details.card{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+details.card>summary{cursor:pointer;list-style:none;padding:12px 14px;font-size:.78rem;font-weight:600;letter-spacing:.06em;color:var(--muted);display:flex;justify-content:space-between}
+details.card>summary::after{content:"＋"} details.card[open]>summary::after{content:"－"}
+details.card>.body{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px}
+
+.tablebox{overflow-x:auto;margin-inline:-14px}
+table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:.86rem;font-variant-numeric:tabular-nums}
+th,td{padding:6px 14px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{font-family:var(--sans);font-size:.7rem;color:var(--muted);font-weight:600;background:var(--sunk)}
+th:first-child,td:first-child{text-align:left}
+tr.here td{background:var(--accent-soft);font-weight:600}
+tbody tr:last-child td{border-bottom:0}
+
+.dirin{display:grid;grid-template-columns:1fr 62px;gap:6px}
+.dirin select{font-family:var(--mono);font-weight:600;padding-inline:6px}
+
+.target{width:100%;max-width:420px;aspect-ratio:1;align-self:center;touch-action:manipulation;background:var(--sunk);border:1px solid var(--line);border-radius:10px;cursor:crosshair;display:block}
+.target line{stroke:var(--line)} .target line.axis{stroke:var(--muted)}
+.target .imp{fill:var(--impact);stroke:var(--surface);stroke-width:1px}
+.target .t-steel{fill:var(--steel);stroke:var(--ink)} .target .t-paper{fill:var(--paper);stroke:var(--ink)} .target .t-ring{fill:none;stroke:var(--ring)}
+.fix{background:var(--hero);color:var(--hero-ink);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.fix .k{font-size:.74rem;color:var(--hero-muted)}
+.fix .nums{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fix .n{font-family:var(--mono);font-size:1.7rem;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.fix .n small{font-size:.5em;color:var(--hero-muted);margin-left:3px}
+.fix .c{font-family:var(--mono);font-size:.8rem;color:var(--hero-muted)}
+.fix .tot{font-family:var(--mono);font-size:.8rem;color:var(--hero-muted);border-top:1px solid var(--hero-line);padding-top:6px}
+.fix .tot b{color:var(--hero-ink);font-weight:500}
+.zoom{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.8rem;color:var(--muted)}
+.zoom .btn{width:42px;padding:8px 0;font-size:1.05rem}
+.target .moa{fill:var(--good);fill-opacity:.12;stroke:var(--good);stroke-dasharray:5 4}
+.target .imp.last{stroke:var(--ink);stroke-width:2px}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.tile{background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;gap:1px}
+.tile .k{font-size:.72rem;color:var(--muted)}
+.tile .v{font-family:var(--mono);font-size:1.05rem;font-weight:600;font-variant-numeric:tabular-nums}
+.tile .d{font-family:var(--mono);font-size:.76rem;color:var(--muted)}
+.warns{margin:0;padding-left:1.1em;font-size:.8rem;color:var(--warn);display:flex;flex-direction:column;gap:4px}
+.band{font-size:.68rem;font-weight:700;padding:0 5px;border-radius:4px;background:var(--accent-soft);color:var(--accent);font-family:var(--sans)}
+.compact th,.compact td{padding:6px 7px}
+.compact th:first-child,.compact td:first-child{padding-left:14px}
+.hist{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.8rem;border-top:1px solid var(--line);padding-top:6px}
+.hist .m{font-family:var(--mono);font-size:.76rem;color:var(--muted)}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{font:inherit;font-size:.8rem;font-weight:600;padding:8px 4px;border:0;border-radius:7px;background:none;color:var(--muted);cursor:pointer;line-height:1.25}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.target text{fill:var(--muted);font-family:var(--mono)}
+.tstats{font-family:var(--mono);font-size:.82rem;display:flex;flex-wrap:wrap;gap:2px 14px;font-variant-numeric:tabular-nums}
+.tstats b{font-weight:600}
+.result{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-family:var(--mono);font-size:.88rem;display:flex;flex-direction:column;gap:2px;font-variant-numeric:tabular-nums}
+.result .k{font-family:var(--sans);font-size:.72rem;color:var(--muted)}
+
+.list{display:flex;flex-direction:column;gap:8px}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;text-align:left;font:inherit;color:var(--ink);cursor:pointer;width:100%}
+.item .t{font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.item .s{font-size:.8rem;color:var(--muted)}
+.shot{border-top:1px solid var(--line);padding-top:10px;display:grid;grid-template-columns:76px 1fr;gap:10px;align-items:start}
+.shot svg{width:76px;height:76px;background:var(--sunk);border:1px solid var(--line);border-radius:8px}
+.shot .l1{font-weight:600}
+.shot .l2{font-family:var(--mono);font-size:.8rem;font-variant-numeric:tabular-nums}
+.shot .l3{font-size:.74rem;color:var(--muted)}
+.err-pos{color:var(--warn)} .err-ok{color:var(--good)}
+.empty{color:var(--muted);font-size:.9rem;text-align:center;padding:24px 8px}
+.back{font:inherit;font-size:.9rem;background:none;border:0;color:var(--accent);padding:4px 0;cursor:pointer;align-self:flex-start;font-weight:600}
+
+.tabbar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom, 0px));display:flex;justify-content:center;z-index:5}
+.tabbar .in{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;width:100%;max-width:720px}
+.tabbar button{font:inherit;font-size:.85rem;font-weight:600;padding:10px 4px;border:0;border-radius:8px;background:none;color:var(--muted);cursor:pointer}
+.tabbar button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent)}
+</style>
+
+<div class="app" id="app" data-night="0">
+<div class="wrap">
+  <div class="top">
+    <h1>K14 현장 탄도계산기</h1>
+    <select id="profileSel" aria-label="프로필 선택"></select>
+    <button class="iconbtn" id="nightBtn" type="button" aria-pressed="false">야간</button>
+  </div>
+
+  <!-- 계산 -->
+  <div id="view-calc" class="view">
+    <section class="solution" aria-live="polite">
+      <div class="dials">
+        <div class="dial"><span class="k">고각</span><span class="v" id="outElev">—</span><span class="c" id="outElevC"></span></div>
+        <div class="dial"><span class="k">편류</span><span class="v" id="outWind">—</span><span class="c" id="outWindC"></span></div>
+      </div>
+      <div class="meta" id="outMeta"></div>
+      <div class="status" id="outStatus"></div>
+      <button class="sendbtn" id="sendBtn" type="button">사격정보철</button>
+    </section>
+
+    <section class="card">
+      <h2>사격 조건</h2>
+      <label>거리 (m)
+        <div class="stepper">
+          <button type="button" id="rangeDown" aria-label="거리 10m 줄이기">−10</button>
+          <input id="range" type="number" inputmode="numeric" step="1" min="50" max="1500" value="600">
+          <button type="button" id="rangeUp" aria-label="거리 10m 늘리기">+10</button>
+        </div>
+      </label>
+      <div class="grid three">
+        <label>풍속 (m/s)<input id="windSpeed" type="number" inputmode="decimal" step="0.5" min="0" value="3"></label>
+        <label>풍향 (시)<select id="windClock"></select></label>
+        <label>경사각 (°)<input id="incline" type="number" step="1" value="0"></label>
+      </div>
+      <p class="hint">풍향은 바람이 불어오는 방향이에요. 12시가 정면(맞바람), 3시가 오른쪽에서 부는 바람. 경사각은 올려 쏘면 +, 내려 쏘면 −.</p>
+    </section>
+
+    <section class="card">
+      <h2>사격장 <span class="toast" id="siteToast"></span></h2>
+      <div class="grid">
+        <label class="span2">저장된 사격장<select id="siteSel"></select></label>
+        <label class="span2">이름<input id="siteName" type="text" placeholder="예: ○○사격장"></label>
+        <label>고도 (m)<input id="siteAlt" type="number" step="1" value="100"></label>
+        <label>위도 (°)<input id="siteLat" type="number" step="0.1" value="37.4"></label>
+        <label>사격 방위각 (°)<input id="siteAz" type="number" inputmode="numeric" step="1" value="0"></label>
+        <label class="chk" style="align-self:end;padding-bottom:10px"><input id="useCor" type="checkbox">코리올리</label>
+      </div>
+      <div class="row">
+        <button class="btn primary" type="button" id="siteSave">이 사격장 저장</button>
+        <button class="btn" type="button" id="siteNew">새 사격장</button>
+        <button class="btn danger" type="button" id="siteDel">삭제</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>기상</h2>
+      <div class="grid">
+        <label>기온 (°C)<input id="temp" type="number" step="0.5" value="21.7"></label>
+        <label>습도 (%)<input id="hum" type="number" inputmode="decimal" step="1" min="0" max="100" value="66"></label>
+        <label class="span2">기압 입력 방식
+          <select id="pMode">
+            <option value="sea">해면기압 (기상청·날씨앱 발표값)</option>
+            <option value="station">현지기압 (Kestrel 등 측정값)</option>
+            <option value="std">모름: 고도로 추정</option>
+          </select>
+        </label>
+        <label class="span2" id="pWrap">기압 (hPa)<input id="press" type="number" inputmode="decimal" step="0.1" value="1013.2"></label>
+      </div>
+      <div class="derived" id="atmoOut"></div>
+      <p class="hint" id="pHint"></p>
+    </section>
+
+    <details class="card" id="tableCard">
+      <summary>사거리표 (현재 조건)</summary>
+      <div class="body"><div class="tablebox"><table id="tbl"></table></div></div>
+    </details>
+  </div>
+
+  <!-- 기록 입력 -->
+  <div id="view-entry" class="view" hidden>
+    <button class="back" type="button" id="entryBack">← 탄도계산</button>
+    <section class="card">
+      <h2>사격 기록 <span id="entryWhen" style="font-family:var(--mono);letter-spacing:0"></span></h2>
+      <div class="derived" id="entryCtx"></div>
+      <div class="grid">
+        <label>계산 고각<input id="eCalcElev" type="text" readonly></label>
+        <label>계산 편류<input id="eCalcWind" type="text" readonly></label>
+        <label>실제 조정한 고각 (MIL)
+          <span class="dirin"><input id="eUsedElev" type="number" inputmode="decimal" step="0.1" min="0"><select id="eUsedElevDir" aria-label="고각 방향"><option>U</option><option>D</option></select></span>
+        </label>
+        <label>실제 조정한 편류 (MIL)
+          <span class="dirin"><input id="eUsedWind" type="number" inputmode="decimal" step="0.1" min="0"><select id="eUsedWindDir" aria-label="편류 방향"><option>R</option><option>L</option></select></span>
+        </label>
+      </div>
+      <p class="hint">계산값이 미리 채워져 있어요. 사수가 다르게 조정했다면 실제 조정값으로 고치세요.</p>
+    </section>
+
+    <section class="card">
+      <h2>표적</h2>
+      <div class="seg" role="group" aria-label="표적 유형">
+        <button type="button" id="tt-score" data-tt="score" aria-pressed="true">원형 점수<br>표적지</button>
+        <button type="button" id="tt-ipsc" data-tt="ipsc" aria-pressed="false">IPSC<br>스틸</button>
+        <button type="button" id="tt-circle" data-tt="circle" aria-pressed="false">원형<br>스틸</button>
+      </div>
+      <div class="grid">
+        <label>가로 (cm)<input id="tW" type="number" inputmode="decimal" min="1" step="1"></label>
+        <label>세로 (cm)<input id="tH" type="number" inputmode="decimal" min="1" step="1"></label>
+      </div>
+      <div class="derived" id="tSize"></div>
+      <svg class="target" id="target" role="img" aria-label="표적. 탄착 위치를 누르면 추가되고, 찍힌 점을 다시 누르면 지워집니다."></svg>
+      <div class="row">
+        <span class="zoom" role="group" aria-label="표적 크기">
+          <button class="btn" type="button" id="zOut" aria-label="표적 작게 보기">−</button>
+          <span id="zLabel">×1.0</span>
+          <button class="btn" type="button" id="zIn" aria-label="표적 크게 보기">+</button>
+        </span>
+        <button class="btn" type="button" id="tUndo">마지막 탄 지우기</button>
+        <button class="btn danger" type="button" id="tClear">전체 지우기</button>
+      </div>
+      <p class="hint" id="tHint"></p>
+      <div class="fix" id="eFix" aria-live="polite"></div>
+      <div class="tstats" id="tStats"></div>
+      <div class="grid three">
+        <label>발수<input id="eRounds" type="number" inputmode="numeric" min="1" step="1" value="1"></label>
+        <label>명중 수<input id="eHits" type="number" inputmode="numeric" min="0" step="1" value="0"></label>
+        <label>사수 정확도 (MOA)<input id="eMoa" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="예: 1.0"></label>
+      </div>
+      <p class="hint" id="moaInfo"></p>
+      <label class="chk"><input id="eConfirmed" type="checkbox" checked>확인된 탄착 (보정에 사용)</label>
+      <label>메모<input id="eNote" type="text" placeholder="예: 냉총 첫발, 표적 SS-01"></label>
+      <div class="row"><button class="btn primary wide" type="button" id="eSave">기록 저장</button></div>
+      <span class="toast" id="eToast"></span>
+    </section>
+  </div>
+
+  <!-- 기록철 -->
+  <div id="view-log" class="view" hidden>
+    <section class="card-plain">
+      <h2>계산 오차 요약 <span style="font-weight:400;letter-spacing:0">확인된 탄착만</span></h2>
+      <div id="summary"></div>
+    </section>
+    <div class="row" style="flex-wrap:nowrap">
+      <label style="flex:1">프로필<select id="fProfile"></select></label>
+      <label style="flex:1">사격장<select id="fSite"></select></label>
+    </div>
+    <div class="list" id="sessionList"></div>
+  </div>
+
+  <div id="view-session" class="view" hidden>
+    <button class="back" type="button" id="sessBack">← 사격정보철</button>
+    <section class="card-plain" id="sessHead"></section>
+    <section class="card-plain" id="sessShots"></section>
+    <div class="row">
+      <button class="btn danger" type="button" id="sessDel">이 사격일지 삭제</button>
+      <span class="toast" id="sessToast"></span>
+    </div>
+  </div>
+
+  <!-- 설정 -->
+  <div id="view-set" class="view" hidden>
+    <section class="card" id="appCard">
+      <h2>앱 정보</h2>
+      <div class="derived"><span>버전 <b>202609170604</b></span><span id="swState">오프라인 준비 확인 중…</span></div>
+      <p class="hint" id="storeState"></p>
+    </section>
+    <section class="card">
+      <h2>프로필 (총기·탄) <span class="toast" id="pfToast"></span></h2>
+      <div class="grid">
+        <label class="span2">프로필 이름<input id="pfName" type="text"></label>
+        <label>항력 모델<select id="pfModel"><option>G1</option><option>G7</option></select></label>
+        <label>BC<input id="pfBc" type="number" inputmode="decimal" step="0.001"></label>
+        <label>초속 (m/s)<input id="pfMv" type="number" inputmode="decimal" step="0.1"></label>
+        <label>탄두 무게 (gr)<input id="pfWt" type="number" inputmode="decimal" step="0.1"></label>
+        <label>직경 (in)<input id="pfDia" type="number" inputmode="decimal" step="0.001"></label>
+        <label>길이 (in)<input id="pfLen" type="number" inputmode="decimal" step="0.001"></label>
+        <label>조준경 높이 (in)<input id="pfSh" type="number" inputmode="decimal" step="0.01"></label>
+        <label>영점 거리 (m)<input id="pfZero" type="number" inputmode="numeric" step="1"></label>
+        <label>강선 회전 (in)<input id="pfTwist" type="number" inputmode="decimal" step="0.1"></label>
+        <label>클릭 값 (MIL)<input id="pfClick" type="number" inputmode="decimal" step="0.01"></label>
+        <label class="chk span2"><input id="pfSpin" type="checkbox">스핀 편류 반영</label>
+      </div>
+      <div class="row">
+        <button class="btn primary" type="button" id="pfSave">프로필 저장</button>
+        <button class="btn" type="button" id="pfCopy">복사해서 새 프로필</button>
+        <button class="btn danger" type="button" id="pfDel">삭제</button>
+      </div>
+      <p class="hint">영점은 평지·무풍, 현재 입력한 기상에서 잡은 것으로 계산해요. 기록에는 저장 당시 프로필 제원이 함께 남아서, 나중에 프로필을 고쳐도 옛 기록은 바뀌지 않아요.</p>
+    </section>
+
+    <section class="card" id="trueCard">
+      <h2>보정 (Truing) <span class="toast" id="trToast"></span></h2>
+      <div class="derived" id="trHead"></div>
+      <p class="hint">사격정보철에 이 프로필로 남긴 "확인된 탄착" 기록으로 초속과 BC를 다시 계산해요. 탄속이 마하 1.4 이상인 거리(초음속)의 기록으로 초속을, 그보다 느린 거리의 기록으로 BC를 맞춰요. 고각만 사용하고, 바람 판단 오차가 섞이는 편류는 쓰지 않아요.</p>
+      <button class="btn primary wide" type="button" id="trRun">기록으로 보정 계산</button>
+      <div id="trOut" style="display:flex;flex-direction:column;gap:10px"></div>
+      <div id="trHist" style="display:flex;flex-direction:column;gap:6px"></div>
+    </section>
+
+    <section class="card">
+      <h2>백업 <span class="toast" id="bkToast"></span></h2>
+      <p class="hint">프로필·사격장·기록은 이 기기의 브라우저에만 저장돼요. 기기를 바꾸거나 브라우저 데이터를 지우기 전에 백업 문자열을 복사해 메모 등에 보관하세요.</p>
+      <div class="row">
+        <button class="btn primary" type="button" id="bkExport">백업 문자열 만들기</button>
+        <button class="btn" type="button" id="bkCopy">복사</button>
+      </div>
+      <textarea id="bkText" spellcheck="false" placeholder="백업 문자열이 여기에 표시돼요. 복원할 때는 보관한 문자열을 붙여넣으세요."></textarea>
+      <div class="row"><button class="btn" type="button" id="bkImport">붙여넣은 문자열로 복원</button></div>
+    </section>
+  </div>
+</div>
+
+<nav class="tabbar" aria-label="화면 전환">
+  <div class="in" role="tablist">
+    <button type="button" role="tab" id="tab-calc" data-tab="calc" aria-selected="true">탄도계산</button>
+    <button type="button" role="tab" id="tab-log" data-tab="log" aria-selected="false">사격정보철</button>
+    <button type="button" role="tab" id="tab-set" data-tab="set" aria-selected="false">제원입력</button>
+  </div>
+</nav>
+</div>
+
+<script>
+var DRAG_TABLES={"G1":[[0.0,0.2629],[0.05,0.2558],[0.1,0.2487],[0.15,0.2413],[0.2,0.2344],[0.25,0.2278],[0.3,0.2214],[0.35,0.2155],[0.4,0.2104],[0.45,0.2061],[0.5,0.2032],[0.55,0.202],[0.6,0.2034],[0.7,0.2165],[0.725,0.223],[0.75,0.2313],[0.775,0.2417],[0.8,0.2546],[0.825,0.2706],[0.85,0.2901],[0.875,0.3136],[0.9,0.3415],[0.925,0.3734],[0.95,0.4084],[0.975,0.4448],[1.0,0.4805],[1.025,0.5136],[1.05,0.5427],[1.075,0.5677],[1.1,0.5883],[1.125,0.6053],[1.15,0.6191],[1.2,0.6393],[1.25,0.6518],[1.3,0.6589],[1.35,0.6621],[1.4,0.6625],[1.45,0.6607],[1.5,0.6573],[1.55,0.6528],[1.6,0.6474],[1.65,0.6413],[1.7,0.6347],[1.75,0.628],[1.8,0.621],[1.85,0.6141],[1.9,0.6072],[1.95,0.6003],[2.0,0.5934],[2.05,0.5867],[2.1,0.5804],[2.15,0.5743],[2.2,0.5685],[2.25,0.563],[2.3,0.5577],[2.35,0.5527],[2.4,0.5481],[2.45,0.5438],[2.5,0.5397],[2.6,0.5325],[2.7,0.5264],[2.8,0.5211],[2.9,0.5168],[3.0,0.5133],[3.1,0.5105],[3.2,0.5084],[3.3,0.5067],[3.4,0.5054],[3.5,0.504],[3.6,0.503],[3.7,0.5022],[3.8,0.5016],[3.9,0.501],[4.0,0.5006],[4.2,0.4998],[4.4,0.4995],[4.6,0.4992],[4.8,0.499],[5.0,0.4988]],"G7":[[0.0,0.1198],[0.05,0.1197],[0.1,0.1196],[0.15,0.1194],[0.2,0.1193],[0.25,0.1194],[0.3,0.1194],[0.35,0.1194],[0.4,0.1193],[0.45,0.1193],[0.5,0.1194],[0.55,0.1193],[0.6,0.1194],[0.65,0.1197],[0.7,0.1202],[0.725,0.1207],[0.75,0.1215],[0.775,0.1226],[0.8,0.1242],[0.825,0.1266],[0.85,0.1306],[0.875,0.1368],[0.9,0.1464],[0.925,0.166],[0.95,0.2054],[0.975,0.2993],[1.0,0.3803],[1.025,0.4015],[1.05,0.4043],[1.075,0.4034],[1.1,0.4014],[1.125,0.3987],[1.15,0.3955],[1.2,0.3884],[1.25,0.381],[1.3,0.3732],[1.35,0.3657],[1.4,0.358],[1.5,0.344],[1.55,0.3376],[1.6,0.3315],[1.65,0.326],[1.7,0.3209],[1.75,0.316],[1.8,0.3117],[1.85,0.3078],[1.9,0.3042],[1.95,0.301],[2.0,0.298],[2.05,0.2951],[2.1,0.2922],[2.15,0.2892],[2.2,0.2864],[2.25,0.2835],[2.3,0.2807],[2.35,0.2779],[2.4,0.2752],[2.45,0.2725],[2.5,0.2697],[2.55,0.267],[2.6,0.2643],[2.65,0.2615],[2.7,0.2588],[2.75,0.2561],[2.8,0.2533],[2.85,0.2506],[2.9,0.2479],[2.95,0.2451],[3.0,0.2424],[3.1,0.2368],[3.2,0.2313],[3.3,0.2258],[3.4,0.2205],[3.5,0.2154],[3.6,0.2106],[3.7,0.206],[3.8,0.2017],[3.9,0.1975],[4.0,0.1935],[4.2,0.1861],[4.4,0.1793],[4.6,0.173],[4.8,0.1672],[5.0,0.1618]]};
+
+// 탄도 엔진 v0.1 — 3DOF point-mass, G1/G7, RK4
+// 단위: 내부 SI (m, s, kg, K, Pa)
+const GRAV = 9.80665;
+const OMEGA = 7.292115e-5; // 지구 자전 각속도 rad/s
+const IN = 0.0254, GR = 6.479891e-5, FPS = 0.3048;
+
+function cdAt(table, mach) {
+  const t = table;
+  if (mach <= t[0][0]) return t[0][1];
+  if (mach >= t[t.length - 1][0]) return t[t.length - 1][1];
+  let lo = 0, hi = t.length - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (t[m][0] > mach) hi = m; else lo = m; }
+  const f = (mach - t[lo][0]) / (t[hi][0] - t[lo][0]);
+  return t[lo][1] + f * (t[hi][1] - t[lo][1]);
+}
+
+// 대기: 기온(°C), 기압(hPa, 현지 기압), 습도(%)
+function atmosphere({ tempC, pressHpa, humidity = 0 }) {
+  const T = tempC + 273.15;
+  const P = pressHpa * 100;
+  // 포화수증기압 (Tetens)
+  const es = 610.78 * Math.pow(10, (7.5 * tempC) / (tempC + 237.3));
+  const pv = (humidity / 100) * es;
+  const rho = (P - pv) / (287.058 * T) + pv / (461.495 * T);
+  const sos = Math.sqrt(1.4 * 287.058 * T) * (1 + 0.0016 * humidity / 100 * 0); // 습도 영향 무시(미미)
+  return { rho, sos, T, P };
+}
+
+// 밀도고도(m) → 표준대기(건조) 기온·기압
+function atmoFromDA(daM) {
+  const tempC = 15 - 0.0065 * daM;
+  const pressHpa = 1013.25 * Math.pow(1 - 2.25577e-5 * daM, 5.25588);
+  return { tempC, pressHpa, humidity: 0 };
+}
+
+// Miller 안정계수
+function millerSg({ weightGr, diamIn, lengthIn, twistIn, mvMs, atmo }) {
+  const t = twistIn / diamIn, l = lengthIn / diamIn;
+  let sg = (30 * weightGr) / (t * t * Math.pow(diamIn, 3) * l * (1 + l * l));
+  sg *= Math.cbrt((mvMs / FPS) / 2800);
+  if (atmo) { // 밀도 보정 (표준: 59°F, 29.92 inHg)
+    const TF = atmo.T * 9 / 5 - 459.67, PinHg = atmo.P / 3386.389;
+    sg *= ((TF + 460) / 519) * (29.92 / PinHg);
+  }
+  return sg;
+}
+
+function makeDeriv(p, atmo) {
+  const table = DRAG_TABLES[p.model];
+  const bcSI = p.bc * 703.0696; // lb/in² → kg/m²
+  const k = Math.PI / 8 / bcSI;
+  const w = p.wind || { x: 0, z: 0 }; // x: 사선방향(순풍+), z: 오른쪽으로 부는 성분
+  let Om = null;
+  if (p.coriolis) {
+    const la = p.coriolis.lat * Math.PI / 180, az = p.coriolis.az * Math.PI / 180;
+    Om = [OMEGA * Math.cos(la) * Math.cos(az), OMEGA * Math.sin(la), -OMEGA * Math.cos(la) * Math.sin(az)];
+  }
+  const inc = (p.inclineDeg || 0) * Math.PI / 180; // 조준선 기준 좌표계에서 중력 분해
+  const gx = -GRAV * Math.sin(inc), gy = -GRAV * Math.cos(inc);
+  return (s) => {
+    const vx = s[3] - w.x, vy = s[4], vz = s[5] - w.z;
+    const v = Math.hypot(vx, vy, vz);
+    const cd = cdAt(table, v / atmo.sos) * (p.dragFactor || 1);
+    const drag = atmo.rho * k * cd * v;
+    let ax = -drag * vx + gx, ay = -drag * vy + gy, az = -drag * vz;
+    if (Om) { // -2 Ω × v
+      const V = [s[3], s[4], s[5]];
+      ax -= 2 * (Om[1] * V[2] - Om[2] * V[1]);
+      ay -= 2 * (Om[2] * V[0] - Om[0] * V[2]);
+      az -= 2 * (Om[0] * V[1] - Om[1] * V[0]);
+    }
+    return [s[3], s[4], s[5], ax, ay, az];
+  };
+}
+
+function rk4(f, s, h) {
+  const a = f(s);
+  const b = f(s.map((x, i) => x + h / 2 * a[i]));
+  const c = f(s.map((x, i) => x + h / 2 * b[i]));
+  const d = f(s.map((x, i) => x + h * c[i]));
+  return s.map((x, i) => x + h / 6 * (a[i] + 2 * b[i] + 2 * c[i] + d[i]));
+}
+
+// 궤적 적분: 사거리 목록(m)에서 상태 기록. 조준선 = y=0, 총구는 y=-sightHeight
+function integrate(p, atmo, angle, ranges, opts = {}) {
+  const f = makeDeriv(opts.noCoriolis ? { ...p, coriolis: null } : p, atmo);
+  const sh = p.sightHeightIn * IN;
+  let s = [0, -sh, 0, p.mvMs * Math.cos(angle), p.mvMs * Math.sin(angle), 0];
+  let t = 0; const h = 0.0005; const out = []; let idx = 0;
+  const maxR = ranges[ranges.length - 1];
+  while (idx < ranges.length && t < 10) {
+    const ns = rk4(f, s, h);
+    while (idx < ranges.length && ns[0] >= ranges[idx]) {
+      const fr = (ranges[idx] - s[0]) / (ns[0] - s[0]);
+      const st = s.map((x, i) => x + fr * (ns[i] - x));
+      out.push({ range: ranges[idx], y: st[1], z: st[2], v: Math.hypot(st[3], st[4], st[5]), tof: t + fr * h });
+      idx++;
+    }
+    s = ns; t += h;
+    if (s[0] > maxR + 1) break;
+  }
+  return out;
+}
+
+function zeroAngle(p, zeroAtmo) {
+  const zr = p.zeroRangeM;
+  let a = 0, b = 0.02;
+  const pz = { ...p, inclineDeg: 0, wind: null }; // 영점은 평지·무풍
+  const g = (ang) => integrate(pz, zeroAtmo, ang, [zr], { noCoriolis: true })[0].y;
+  // 할선법 (보통 4~6회 수렴), 실패 시 이분법
+  let x0 = 0, x1 = 0.003, f0 = g(x0), f1 = g(x1);
+  for (let i = 0; i < 20; i++) {
+    if (Math.abs(f1) < 1e-7 || f1 === f0) break;
+    const x2 = x1 - f1 * (x1 - x0) / (f1 - f0);
+    x0 = x1; f0 = f1; x1 = x2; f1 = g(x1);
+  }
+  if (Math.abs(f1) < 1e-6 && x1 > -0.02 && x1 < 0.05) return x1;
+  for (let i = 0; i < 60; i++) { const m = (a + b) / 2; if (g(m) > 0) b = m; else a = m; }
+  return (a + b) / 2;
+}
+
+// 메인: 사거리표
+function solve(p) {
+  const atmo = atmosphere(p.atmo);
+  const zeroAtmo = atmosphere(p.zeroAtmo || p.atmo);
+  const ang = zeroAngle(p, zeroAtmo);
+  const rows = integrate(p, atmo, ang, p.ranges);
+  const sg = millerSg({ weightGr: p.weightGr, diamIn: p.diamIn, lengthIn: p.lengthIn, twistIn: p.twistIn, mvMs: p.mvMs, atmo });
+  return {
+    sg, rho: atmo.rho, sos: atmo.sos,
+    rows: rows.map(r => {
+      const spin = p.spinDrift && p.lengthIn > 0 ? 1.25 * (sg + 1.2) * Math.pow(r.tof, 1.83) * IN * (p.twistRight === false ? -1 : 1) : 0;
+      const zTot = r.z + spin;
+      return {
+        range: r.range,
+        elevMil: Math.atan2(-r.y, r.range) * 1000, // +: 올림(U)
+        windMil: Math.atan2(zTot, r.range) * 1000,  // +: 탄이 오른쪽으로 감(수정은 L)
+        v: r.v, tof: r.tof, mach: r.v / atmo.sos,
+        energyJ: 0.5 * p.weightGr * GR * r.v * r.v,
+        dropIn: r.y / IN,
+      };
+    }),
+  };
+}
+
+// 기압 변환
+function stationFromSeaLevel(slpHpa, altM, tempC) { // 해면기압 → 현지기압 (측고공식)
+  const T = tempC + 273.15 + 0.0065 * altM;
+  return slpHpa * Math.pow(1 - 0.0065 * altM / T, 5.257);
+}
+function stdPressureAt(altM) { return 1013.25 * Math.pow(1 - 2.25577e-5 * altM, 5.25588); }
+function densityAltitude(rho) { return (1 - Math.pow(rho / 1.225, 1 / 4.2559)) / 2.25577e-5; }
+// 시계방향 풍향(바람이 불어오는 방향, 12시=정면) → 성분 (m/s)
+function windFromClock(speed, clock) {
+  const th = (clock % 12) * 30 * Math.PI / 180;
+  return { x: -speed * Math.cos(th), z: -speed * Math.sin(th) };
+}
+
+
+// 보정(Truing) — 확인된 탄착의 "실제 필요 고각"에 맞도록 초속·BC를 역산
+// 규칙: 탄속이 마하 TRUE_MACH 이상인 거리(초음속)는 초속으로, 그보다 느린 거리는 BC로 맞춘다.
+const TRUE_MACH = 1.4;
+
+function tPredict(prof, sh, over) {
+  const p = { ...prof, ...over };
+  const res = solve({
+    model: p.model, bc: p.bc, weightGr: p.wt, diamIn: p.dia, lengthIn: p.len, mvMs: p.mv, sightHeightIn: p.sh,
+    zeroRangeM: p.zero, twistIn: p.twist, spinDrift: false,
+    atmo: { tempC: sh.temp, pressHpa: sh.station, humidity: sh.hum || 0 },
+    ranges: [sh.range], wind: windFromClock(sh.windSpeed || 0, sh.windClock || 0), inclineDeg: sh.incline || 0,
+    coriolis: sh.cor ? { lat: sh.cor.lat, az: sh.cor.az } : null,
+  });
+  const r = res.rows[0];
+  return { elev: r.elevMil, mach: r.mach };
+}
+
+function golden(f, lo, hi, iters = 26) {
+  const gr = (Math.sqrt(5) - 1) / 2;
+  let a = lo, b = hi, c = b - gr * (b - a), d = a + gr * (b - a), fc = f(c), fd = f(d);
+  for (let i = 0; i < iters; i++) {
+    if (fc < fd) { b = d; d = c; fd = fc; c = b - gr * (b - a); fc = f(c); }
+    else { a = c; c = d; fc = fd; d = a + gr * (b - a); fd = f(d); }
+  }
+  return (a + b) / 2;
+}
+
+// shots: [{ id, range, temp, hum, station, windSpeed, windClock, incline, cor, obsElev }]
+function trueProfile(prof, shots) {
+  const warnings = [];
+  const base = shots.map(sh => ({ sh, ...tPredict(prof, sh, {}) }));
+  const near = base.filter(b => b.mach >= TRUE_MACH).map(b => b.sh);
+  const far = base.filter(b => b.mach < TRUE_MACH).map(b => b.sh);
+  const sse = (list, over) => list.reduce((s, sh) => { const e = tPredict(prof, sh, over).elev - sh.obsElev; return s + e * e; }, 0);
+
+  let mv = prof.mv, bc = prof.bc;
+  const MV_SPAN = 60, BC_SPAN = 0.25;
+  // 초속·BC를 번갈아 맞춤. 두 번째부터는 직전 값 주변만 좁혀서 탐색
+  for (let pass = 0; pass < 8; pass++) {
+    const k = pass === 0 ? 1 : 0.15, it = pass === 0 ? 26 : 16, pmv = mv, pbc = bc;
+    if (near.length) mv = golden(x => sse(near, { mv: x, bc }), Math.max(prof.mv - MV_SPAN, mv - MV_SPAN * k), Math.min(prof.mv + MV_SPAN, mv + MV_SPAN * k), it);
+    if (far.length) bc = golden(x => sse(far, { mv, bc: x }), Math.max(prof.bc * (1 - BC_SPAN), bc - prof.bc * BC_SPAN * k), Math.min(prof.bc * (1 + BC_SPAN), bc + prof.bc * BC_SPAN * k), it);
+    if (!near.length || !far.length) break;
+    if (Math.abs(mv - pmv) < 0.1 && Math.abs(bc - pbc) < 0.0005) break;
+  }
+  if (!near.length && far.length) warnings.push(`초음속 구간(마하 ${TRUE_MACH} 이상) 기록이 없어 초속은 그대로 두고 BC만 맞췄어요. 근거리(대략 300~500m) 기록을 추가하면 더 정확해요.`);
+  if (near.length && !far.length) warnings.push(`마하 ${TRUE_MACH} 미만 원거리 기록이 없어 BC는 그대로 두고 초속만 맞췄어요.`);
+  if (Math.abs(mv - prof.mv) > MV_SPAN * 0.95) warnings.push('초속 보정값이 탐색 범위(±60 m/s) 끝에 걸렸어요. 기록 입력(조정값·탄착)이나 프로필 제원을 확인하세요.');
+  if (Math.abs(bc / prof.bc - 1) > BC_SPAN * 0.95) warnings.push('BC 보정값이 탐색 범위(±25%) 끝에 걸렸어요. 기록 입력이나 프로필 제원을 확인하세요.');
+  if (near.length === 1) warnings.push('초속 보정에 쓴 기록이 1건뿐이에요. 한 발의 우연한 오차가 크게 반영될 수 있어요.');
+  if (far.length === 1) warnings.push('BC 보정에 쓴 기록이 1건뿐이에요. 한 발의 우연한 오차가 크게 반영될 수 있어요.');
+
+  const rows = base.map(b => {
+    const after = tPredict(prof, b.sh, { mv, bc }).elev;
+    return { id: b.sh.id, range: b.sh.range, mach: b.mach, band: b.mach >= TRUE_MACH ? 'mv' : 'bc', obs: b.sh.obsElev, before: b.elev, after };
+  });
+  const rms = k => Math.sqrt(rows.reduce((s, r) => s + (r[k] - r.obs) ** 2, 0) / Math.max(1, rows.length));
+  rows.forEach(r => { if (Math.abs(r.after - r.obs) > 0.15) warnings.push(`${r.range}m 기록은 보정 후에도 ${Math.abs(r.after - r.obs).toFixed(2)} MIL 차이가 남아요. 입력 실수나 바람 판단 오차일 수 있으니 확인하고, 필요하면 제외하세요.`); });
+  return { mv, bc, rows, rmsBefore: rms('before'), rmsAfter: rms('after'), nNear: near.length, nFar: far.length, warnings };
+}
+
+
+</script>
+<script>
+const $ = id => document.getElementById(id);
+const KEY = 'k14calc.v1';
+const DEFAULT_PROFILE = { id:'k14', name:'K14 기본', model:'G1', bc:0.481, mv:775, wt:174, dia:0.311, len:1.347, sh:2.44, zero:100, twist:12, click:0.1, spin:true };
+const DEFAULT_SITE = { id:'ex', name:'예시 사격장', alt:100, lat:37.4, az:0, cor:false };
+let store = { profiles:[DEFAULT_PROFILE], sites:[DEFAULT_SITE], sessions:[], cur:{ profile:'k14', site:'ex' }, field:null, night:false };
+
+function load(){ try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s && s.profiles && s.profiles.length){ store = { ...store, ...s, sessions: s.sessions || [] }; store.profiles.forEach(p=>{ if(p.id==='k14' && p.name==='K14 기본 (775 m/s)') p.name='K14 기본'; }); } }catch(e){} }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(store)); return true; }catch(e){ return false; } }
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const num = id => parseFloat($(id).value);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(id, msg){ const el=$(id); el.textContent=msg; clearTimeout(el._t); el._t=setTimeout(()=>el.textContent='',2600); }
+const pad = n => String(n).padStart(2,'0');
+const today = () => { const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const nowHM = () => { const d=new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+// 다이얼 규약: 고각 + = U, 편류 + = R
+const fE = v => Math.abs(v)<0.005 ? '0.00' : `${Math.abs(v).toFixed(2)} ${v>0?'U':'D'}`;
+const fW = v => Math.abs(v)<0.005 ? '0.00' : `${Math.abs(v).toFixed(2)} ${v>0?'R':'L'}`;
+const fS = (v,n=2) => Math.abs(v)<0.005 ? '±0.00' : (v>0?'+':'−') + Math.abs(v).toFixed(n);
+const errCls = v => Math.abs(v)>0.1 ? 'err-pos' : 'err-ok';
+
+/* 목록 */
+function fillClock(){ let h=''; for(let i=0;i<24;i++){ const c=i/2; const lab=c===0?'12':(Number.isInteger(c)?String(c):Math.floor(c)+':30'); h+=`<option value="${c}">${lab}시</option>`; } $('windClock').innerHTML=h; $('windClock').value='3'; }
+function fillProfiles(){ $('profileSel').innerHTML = store.profiles.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join(''); $('profileSel').value=store.cur.profile; }
+function fillSites(){ $('siteSel').innerHTML = store.sites.map(s=>`<option value="${s.id}">${esc(s.name)} · ${s.alt}m</option>`).join(''); $('siteSel').value=store.cur.site; }
+const curProfile = () => store.profiles.find(p=>p.id===store.cur.profile) || store.profiles[0];
+const curSite = () => store.sites.find(s=>s.id===store.cur.site) || store.sites[0];
+function showProfile(p){ $('pfName').value=p.name; $('pfModel').value=p.model; $('pfBc').value=p.bc; $('pfMv').value=p.mv; $('pfWt').value=p.wt; $('pfDia').value=p.dia; $('pfLen').value=p.len; $('pfSh').value=p.sh; $('pfZero').value=p.zero; $('pfTwist').value=p.twist; $('pfClick').value=p.click; $('pfSpin').checked=!!p.spin; }
+function readProfile(){ return { name:$('pfName').value.trim()||'이름 없는 프로필', model:$('pfModel').value, bc:num('pfBc'), mv:num('pfMv'), wt:num('pfWt'), dia:num('pfDia'), len:num('pfLen')||0, sh:num('pfSh'), zero:num('pfZero'), twist:num('pfTwist'), click:num('pfClick')||0.1, spin:$('pfSpin').checked }; }
+function showSite(s){ $('siteName').value=s.name; $('siteAlt').value=s.alt; $('siteLat').value=s.lat; $('siteAz').value=s.az; $('useCor').checked=!!s.cor; }
+
+/* 기압 */
+function stationPressure(){ const alt=num('siteAlt')||0, m=$('pMode').value; if(m==='station') return num('press'); if(m==='sea') return stationFromSeaLevel(num('press'), alt, num('temp')); return stdPressureAt(alt); }
+function syncPressUI(){
+  const m=$('pMode').value; $('pWrap').hidden = m==='std';
+  $('pHint').innerHTML = m==='station' ? '측정기에 표시되는 현지기압(Station/Baro)을 그대로 넣으세요.'
+    : m==='sea' ? '기상청·날씨앱의 기압은 해면기압이에요. 사격장 고도로 현지기압을 계산해 반영합니다.'
+    : '<span class="flag">추정</span> 사격장 고도의 표준대기 기압을 씁니다. 날씨에 따라 ±10 hPa 정도 달라질 수 있어요.';
+}
+
+/* 계산 */
+let timer=null, last=null;
+function schedule(){ clearTimeout(timer); timer=setTimeout(compute,120); }
+function compute(){
+  const p = readProfile(); const R = Math.round(num('range')); const P = stationPressure();
+  const ok = [p.bc,p.mv,p.wt,p.dia,p.sh,p.zero,p.twist,R,P,num('temp')].every(isFinite) && R>=50 && p.bc>0 && p.mv>0;
+  if(!ok){ last=null; $('outStatus').textContent='비어 있거나 잘못된 입력이 있어요. 거리(50m 이상)·기압·프로필 값을 확인해 주세요.'; return; }
+  const atmo = { tempC:num('temp'), pressHpa:P, humidity:Math.min(100,Math.max(0,num('hum')||0)) };
+  const maxR = Math.max(R,1000);
+  const ranges = [...new Set([...Array.from({length:Math.floor(maxR/50)},(_,i)=>(i+1)*50), R])].sort((a,b)=>a-b);
+  const windSpeed=Math.max(0,num('windSpeed')||0), windClock=parseFloat($('windClock').value), incline=num('incline')||0;
+  let res;
+  try{ res = solve({ model:p.model, bc:p.bc, weightGr:p.wt, diamIn:p.dia, lengthIn:p.len, mvMs:p.mv, sightHeightIn:p.sh, zeroRangeM:p.zero, twistIn:p.twist,
+      atmo, ranges, wind:windFromClock(windSpeed, windClock), inclineDeg:incline, spinDrift:p.spin,
+      coriolis: $('useCor').checked ? { lat:num('siteLat')||0, az:num('siteAz')||0 } : null }); }
+  catch(e){ last=null; $('outStatus').textContent='계산할 수 없는 조건이에요. 입력값을 확인해 주세요.'; return; }
+  const row = res.rows.find(r=>r.range===R);
+  if(!row){ last=null; $('outStatus').textContent='이 거리까지 계산하지 못했어요. 거리를 줄여 보세요.'; return; }
+  const elev = row.elevMil, wind = -row.windMil; // 엔진(탄이 오른쪽 +) → 다이얼(R +)
+  const click=p.click;
+  $('outElev').innerHTML = `${Math.abs(elev).toFixed(2)}<small>${elev>=0?'U':'D'}</small>`;
+  $('outElevC').textContent = `${Math.round(Math.abs(elev)/click)} 클릭`;
+  $('outWind').innerHTML = Math.abs(wind)<0.005 ? '0.00' : `${Math.abs(wind).toFixed(2)}<small>${wind>0?'R':'L'}</small>`;
+  $('outWindC').textContent = `${Math.round(Math.abs(wind)/click)} 클릭`;
+  $('outMeta').innerHTML = `<span>거리 <b>${R}m</b></span><span>비행 <b>${row.tof.toFixed(2)}s</b></span><span>탄속 <b>${row.v.toFixed(0)} m/s</b></span><span>마하 <b>${row.mach.toFixed(2)}</b></span>${row.mach<1.2?'<span><b>천음속 진입 주의</b></span>':''}`;
+  $('outStatus').textContent = `${p.name} · ${$('siteName').value||'사격장 미지정'} · 기온 ${num('temp')}°C · 현지기압 ${P.toFixed(1)} hPa`;
+  $('atmoOut').innerHTML = `<span>현지기압 <b>${P.toFixed(1)} hPa</b></span><span>공기밀도 <b>${res.rho.toFixed(3)} kg/m³</b></span><span>밀도고도 <b>${Math.round(densityAltitude(res.rho))} m</b></span>${p.len>0?`<span>Sg <b>${res.sg.toFixed(2)}</b></span>`:''}`;
+  $('tbl').innerHTML = `<thead><tr><th>거리 m</th><th>고각 MIL</th><th>클릭</th><th>편류 MIL</th><th>비행 s</th><th>탄속 m/s</th></tr></thead><tbody>` +
+    res.rows.map(r=>`<tr class="${r.range===R?'here':''}"><td>${r.range}</td><td>${fE(r.elevMil)}</td><td>${Math.round(Math.abs(r.elevMil)/click)}</td><td>${fW(-r.windMil)}</td><td>${r.tof.toFixed(2)}</td><td>${r.v.toFixed(0)}</td></tr>`).join('') + '</tbody>';
+  last = { range:R, elev, wind, tof:row.tof, v:row.v, windSpeed, windClock, incline,
+    weather:{ temp:num('temp'), hum:atmo.humidity, pMode:$('pMode').value, pInput:num('press'), station:+P.toFixed(1), rho:+res.rho.toFixed(4), da:Math.round(densityAltitude(res.rho)) },
+    profile:{ id:store.cur.profile, ...p }, site:{ id:store.cur.site, name:$('siteName').value||'사격장 미지정', alt:num('siteAlt')||0, lat:num('siteLat')||0, az:num('siteAz')||0, cor:$('useCor').checked } };
+  store.field = { range:R, windSpeed, windClock:$('windClock').value, incline, temp:num('temp'), hum:num('hum'), pMode:$('pMode').value, press:num('press') };
+  save();
+}
+
+/* 탄착 통계 */
+function groupStats(imps){
+  if(!imps || !imps.length) return null;
+  const mx = imps.reduce((a,p)=>a+p.x,0)/imps.length, my = imps.reduce((a,p)=>a+p.y,0)/imps.length;
+  let es=0; for(let i=0;i<imps.length;i++) for(let j=i+1;j<imps.length;j++) es=Math.max(es, Math.hypot(imps[i].x-imps[j].x, imps[i].y-imps[j].y));
+  return { mx, my, es, n:imps.length };
+}
+// 실제 필요 수정값 = 조정값 − 평균 탄착. 탄착이 아래(y−)면 더 올려야, 오른쪽(x+)이면 L쪽으로.
+function trueCorrection(used, g){ return g ? { elev: used.elev - g.my, wind: used.wind - g.mx } : null; }
+
+/* 표적 */
+const TARGET_TYPES = {
+  score:  { name:'원형 점수 표적지', w:60, h:60, shape:'ellipse', cls:'t-paper' },
+  ipsc:   { name:'IPSC 스틸',       w:45, h:75, shape:'ipsc',    cls:'t-steel' },
+  circle: { name:'원형 스틸',       w:30, h:30, shape:'ellipse', cls:'t-steel' },
+};
+// IPSC 실루엣 외곽 (가로·세로를 1로 둔 비율 좌표, 위가 +). 형태 표현용 근사치
+const IPSC_POLY = [[-0.12,0.5],[0.12,0.5],[0.165,0.45],[0.165,0.32],[0.12,0.28],[0.35,0.28],[0.5,0.12],[0.5,-0.3],[0.35,-0.5],[-0.35,-0.5],[-0.5,-0.3],[-0.5,0.12],[-0.35,0.28],[-0.12,0.28],[-0.165,0.32],[-0.165,0.45]];
+const cmToMil = (cm, R) => cm * 10 / R; // R m에서 1 MIL = R/10 cm
+const MOA_IN_MIL = Math.PI/(180*60)*1000; // 1 MOA = 0.2909 MIL
+const moaToMil = moa => moa * MOA_IN_MIL;
+function targetMil(t, R){ return t ? { tw: cmToMil(t.w, R), th: cmToMil(t.h, R) } : null; }
+function inPoly(x, y, poly){ let c=false; for(let i=0,j=poly.length-1;i<poly.length;j=i++){ const [xi,yi]=poly[i],[xj,yj]=poly[j]; if(((yi>y)!==(yj>y)) && (x < (xj-xi)*(y-yi)/(yj-yi)+xi)) c=!c; } return c; }
+// 탄착 판정: 명중 여부 + (점수 표적) 점수. 링 10개 균등 간격 가정
+function judge(p, t, R){
+  if(!t) return { hit:null, score:null };
+  const { tw, th } = targetMil(t, R); const u = p.x/tw, v = p.y/th;
+  if(TARGET_TYPES[t.type].shape === 'ipsc') return { hit: inPoly(u, v, IPSC_POLY), score:null };
+  const r = Math.hypot(u*2, v*2); // 타원 정규화 반지름 (1 = 외곽)
+  const hit = r <= 1;
+  return { hit, score: t.type==='score' ? (hit ? Math.min(10, 10 - Math.floor(r*10)) : 0) : null };
+}
+function viewHalf(imps, t, R, zoom=1){
+  let S = 0.5;
+  if(t){ const m = targetMil(t, R); S = Math.max(m.tw, m.th)/2*1.3; }
+  S = S / zoom;
+  imps.forEach(p=>{ S = Math.max(S, Math.abs(p.x)*1.1, Math.abs(p.y)*1.1); });
+  return S;
+}
+function niceStep(S){ for(const st of [0.05,0.1,0.2,0.25,0.5,1,2,5]) if(S/st <= 6) return st; return 10; }
+function drawTarget(svg, imps, R, t, mini, opt={}){
+  const S = viewHalf(imps, t, R, opt.zoom||1), step = niceStep(S);
+  let h='';
+  for(let k=-Math.floor(S/step); k<=Math.floor(S/step); k++){ const v=k*step; const ax=k===0?' class="axis"':'';
+    h+=`<line${ax} x1="${v}" y1="${-S}" x2="${v}" y2="${S}" vector-effect="non-scaling-stroke" stroke-width="${k===0?1.2:.6}"/><line${ax} x1="${-S}" y1="${v}" x2="${S}" y2="${v}" vector-effect="non-scaling-stroke" stroke-width="${k===0?1.2:.6}"/>`; }
+  if(t){
+    const { tw, th } = targetMil(t, R); const T = TARGET_TYPES[t.type];
+    if(T.shape === 'ipsc'){
+      h += `<polygon class="${T.cls}" fill-opacity=".55" vector-effect="non-scaling-stroke" stroke-width="1.4" points="${IPSC_POLY.map(([u,v])=>`${u*tw},${-v*th}`).join(' ')}"/>`;
+    } else {
+      h += `<ellipse class="${T.cls}" fill-opacity="${t.type==='score'?.9:.55}" vector-effect="non-scaling-stroke" stroke-width="1.4" cx="0" cy="0" rx="${tw/2}" ry="${th/2}"/>`;
+      if(t.type==='score'){ for(let i=1;i<10;i++) h += `<ellipse class="t-ring" vector-effect="non-scaling-stroke" stroke-width=".8" cx="0" cy="0" rx="${tw/2*i/10}" ry="${th/2*i/10}"/>`;
+        if(!mini && Math.min(tw,th) > S*0.9){ const fs=Math.min(tw,th)*0.04; for(let i=3;i<=9;i+=2) h += `<text x="${tw/2*(i-0.5)/10}" y="${fs*0.35}" font-size="${fs}" text-anchor="middle">${11-i}</text>`; } }
+    }
+  }
+  // 사수 허용 탄착범위 (MOA 원, 조준점 중심)
+  if(opt.moa){ h += `<circle class="moa" vector-effect="non-scaling-stroke" stroke-width="1.4" cx="0" cy="0" r="${moaToMil(opt.moa)/2}"/>`; }
+  // 조준점
+  const a = S*0.05; h += `<circle cx="0" cy="0" r="${a*0.5}" fill="none" style="stroke:var(--mpi)" stroke-width="1.4" vector-effect="non-scaling-stroke"/>`;
+  if(!mini){ const fs=S*0.05; h+=`<text x="${S*0.97}" y="${S*0.95}" font-size="${fs}" text-anchor="end">격자 ${step} MIL</text>`; }
+  const r = S*(mini?0.07:0.03);
+  imps.forEach((p,i)=>{ h+=`<circle class="imp${!mini && i===imps.length-1 && imps.length>1 ? ' last':''}" vector-effect="non-scaling-stroke" cx="${p.x}" cy="${-p.y}" r="${r}"/>`; });
+  const g = groupStats(imps);
+  if(g && g.n>1){ const c=S*(mini?0.12:0.06); h+=`<line x1="${g.mx-c}" y1="${-g.my}" x2="${g.mx+c}" y2="${-g.my}" style="stroke:var(--mpi)" stroke-width="2.2" vector-effect="non-scaling-stroke"/><line x1="${g.mx}" y1="${-g.my-c}" x2="${g.mx}" y2="${-g.my+c}" style="stroke:var(--mpi)" stroke-width="2.2" vector-effect="non-scaling-stroke"/>`; }
+  svg.setAttribute('viewBox', `${-S} ${-S} ${2*S} ${2*S}`);
+  svg.innerHTML = h;
+  return S;
+}
+
+/* 기록 입력 */
+let entry = null;
+function openEntry(){
+  if(!last){ $('outStatus').textContent='계산 결과가 없어서 기록할 수 없어요. 입력값을 확인해 주세요.'; return; }
+  const pref = store.targetPref || { type:'score', w:TARGET_TYPES.score.w, h:TARGET_TYPES.score.h };
+  entry = { ctx: JSON.parse(JSON.stringify(last)), imps: [], when: { date: today(), time: nowHM() }, target: { ...pref }, hitsManual:false, S:1, zoom:1 };
+  const c = entry.ctx;
+  $('entryWhen').textContent = `${entry.when.date} ${entry.when.time}`;
+  $('entryCtx').innerHTML = `<span><b>${c.range}m</b></span><span>${esc(c.profile.name)}</span><span>${esc(c.site.name)}</span><span>바람 <b>${c.windSpeed} m/s ${c.windClock}시</b></span><span>경사 <b>${c.incline}°</b></span><span>기온 <b>${c.weather.temp}°C</b></span><span>현지기압 <b>${c.weather.station} hPa</b></span>`;
+  $('eCalcElev').value = fE(c.elev); $('eCalcWind').value = fW(c.wind);
+  $('eUsedElev').value = Math.abs(c.elev).toFixed(1); $('eUsedElevDir').value = c.elev>=0?'U':'D';
+  $('eUsedWind').value = Math.abs(c.wind).toFixed(1); $('eUsedWindDir').value = c.wind>=0?'R':'L';
+  $('eRounds').value = 1; $('eHits').value = 0; $('eMoa').value = store.shooterMoa ?? ''; $('eNote').value=''; $('eConfirmed').checked=true;
+  syncTargetUI(); show('entry'); renderEntry();
+}
+function syncTargetUI(){
+  const t = entry.target;
+  document.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.tt===t.type)));
+  $('tW').value = t.w; $('tH').value = t.h;
+}
+function setTargetType(type){
+  const T = TARGET_TYPES[type];
+  entry.target = { type, w:T.w, h:T.h };
+  const saved = (store.targetSizes||{})[type]; if(saved){ entry.target.w=saved.w; entry.target.h=saved.h; }
+  syncTargetUI(); renderEntry();
+}
+function readTargetSize(){
+  const w=num('tW'), h=num('tH');
+  if(isFinite(w) && w>0) entry.target.w=w; if(isFinite(h) && h>0) entry.target.h=h;
+  store.targetSizes = store.targetSizes || {}; store.targetSizes[entry.target.type] = { w:entry.target.w, h:entry.target.h };
+  store.targetPref = { ...entry.target }; save();
+  renderEntry();
+}
+function usedFromForm(){ return { elev:(num('eUsedElev')||0)*($('eUsedElevDir').value==='U'?1:-1), wind:(num('eUsedWind')||0)*($('eUsedWindDir').value==='R'?1:-1) }; }
+const clicks = v => Math.round(Math.abs(v)/(entry.ctx.profile.click||0.1));
+function renderEntry(){
+  const c = entry.ctx, R = c.range, t = entry.target, T = TARGET_TYPES[t.type];
+  const moa = num('eMoa') > 0 ? num('eMoa') : null;
+  entry.S = drawTarget($('target'), entry.imps, R, t, false, { zoom:entry.zoom, moa });
+  $('zLabel').textContent = '×' + entry.zoom.toFixed(entry.zoom<1?2:1);
+  const m = targetMil(t, R);
+  $('tSize').innerHTML = `<span>${R}m에서 <b>${m.tw.toFixed(2)} × ${m.th.toFixed(2)} MIL</b></span><span>1 MIL = <b>${(R/10).toFixed(1)} cm</b></span>`;
+  $('tHint').textContent = `가운데 동그라미가 조준점이에요. ${T.name}에 탄착 위치를 누르고, 잘못 찍은 점은 다시 누르면 지워져요. 표적 밖 탄착은 − 버튼으로 표적을 작게 보이게 한 뒤 찍으세요. 테두리가 진한 점이 최종 탄착이에요.` + (t.type==='score' ? ' 점수는 링 10개가 균등 간격이라고 보고 계산해요.' : t.type==='ipsc' ? ' 실루엣은 입력한 가로·세로에 맞춘 근사 형태예요.' : '');
+
+  const g = groupStats(entry.imps);
+  const judged = entry.imps.map(p=>judge(p, t, R));
+  const hits = judged.filter(j=>j.hit).length;
+  const score = t.type==='score' ? judged.reduce((a,j)=>a+(j.score||0),0) : null;
+  if(g && (num('eRounds')||0) < g.n) $('eRounds').value = g.n;
+  if(!entry.hitsManual) $('eHits').value = hits;
+
+  const inMoa = moa ? entry.imps.filter(p=>Math.hypot(p.x,p.y) <= moaToMil(moa)/2).length : null;
+  $('tStats').innerHTML = g
+    ? `<span>탄착 <b>${g.n}발</b></span><span>명중 <b>${hits}</b></span>${score!==null?`<span>점수 <b>${score}</b> / ${g.n*10}</span>`:''}${moa?`<span>허용범위 안 <b>${inMoa} / ${g.n}</b></span>`:''}${g.n>1?`<span>그룹 <b>${g.es.toFixed(2)} MIL</b> (${(g.es*R/10).toFixed(1)} cm)</span><span>평균 탄착 상하 <b>${fS(g.my)}</b> · 좌우 <b>${fS(g.mx)}</b></span>`:''}`
+    : '';
+  $('moaInfo').innerHTML = moa ? `허용 탄착범위: ${moa} MOA = <b>${moaToMil(moa).toFixed(2)} MIL</b> 지름 (${R}m에서 <b>${(moaToMil(moa)*R/10).toFixed(1)} cm</b>). 표적의 초록 점선 원이 조준점 기준 허용범위예요.` : '사수 정확도(MOA)를 넣으면 조준점 기준 허용 탄착범위를 표적에 표시해요.';
+
+  // 다음 사격 수정 = −(최종 탄착)
+  const lastImp = entry.imps[entry.imps.length-1];
+  if(!lastImp){ $('eFix').innerHTML = `<span class="k">탄착을 찍으면 조준점에 맞추기 위해 수정해야 할 밀값이 여기에 나와요.</span>`; }
+  else {
+    const dE = -lastImp.y, dW = -lastImp.x; const used = usedFromForm(); const nE = used.elev + dE, nW = used.wind + dW;
+    const dirE = Math.abs(dE)<0.005 ? '' : (dE>0?'U':'D'), dirW = Math.abs(dW)<0.005 ? '' : (dW>0?'R':'L');
+    const within = moa && Math.hypot(lastImp.x,lastImp.y) <= moaToMil(moa)/2;
+    $('eFix').innerHTML = `<span class="k">다음 사격 수정 (최종 탄착 ${entry.imps.length}번째 탄 기준)${within?' · 허용범위 안이라 수정하지 않아도 돼요':''}</span>
+      <div class="nums">
+        <div><div class="k">고각</div><div class="n">${Math.abs(dE).toFixed(2)}<small>${dirE}</small></div><div class="c">${clicks(dE)} 클릭 · ${(Math.abs(dE)*R/10).toFixed(1)} cm</div></div>
+        <div><div class="k">편류</div><div class="n">${Math.abs(dW).toFixed(2)}<small>${dirW}</small></div><div class="c">${clicks(dW)} 클릭 · ${(Math.abs(dW)*R/10).toFixed(1)} cm</div></div>
+      </div>
+      <div class="tot">수정 후 다이얼 <b>고각 ${fE(nE)}</b> · <b>편류 ${fW(nW)}</b> &nbsp;|&nbsp; 계산 대비 고각 <b>${fS(nE-c.elev)}</b> · 편류 <b>${fS(nW-c.wind)}</b></div>`;
+  }
+}
+function targetTap(ev){
+  const svg=$('target'), S=entry.S, rc=svg.getBoundingClientRect();
+  const x = ((ev.clientX-rc.left)/rc.width*2-1)*S, y = -((ev.clientY-rc.top)/rc.height*2-1)*S;
+  const near = entry.imps.findIndex(p=>Math.hypot(p.x-x,p.y-y) < S*0.05);
+  if(near>=0) entry.imps.splice(near,1); else entry.imps.push({ x:+x.toFixed(3), y:+y.toFixed(3) });
+  renderEntry();
+}
+function saveEntry(){
+  const c = entry.ctx; const g = groupStats(entry.imps); const used = usedFromForm();
+  const rounds = Math.max(g?g.n:0, Math.round(num('eRounds'))||0);
+  if(rounds<1){ toast('eToast','발수를 1 이상 입력하세요.'); return; }
+  const t = entry.target;
+  const score = t.type==='score' && entry.imps.length ? entry.imps.reduce((a,p)=>a+(judge(p,t,c.range).score||0),0) : null;
+  const shot = { id:uid(), time:entry.when.time, range:c.range, windSpeed:c.windSpeed, windClock:c.windClock, incline:c.incline, weather:c.weather,
+    calc:{ elev:+c.elev.toFixed(3), wind:+c.wind.toFixed(3), tof:+c.tof.toFixed(3), v:+c.v.toFixed(1) }, used:{ elev:+used.elev.toFixed(2), wind:+used.wind.toFixed(2) },
+    target:{ ...t }, impacts: entry.imps, rounds, hits: Math.min(rounds, Math.max(0, Math.round(num('eHits'))||0)), score,
+    moa: isFinite(num('eMoa')) && num('eMoa')>0 ? num('eMoa') : null,
+    confirmed: $('eConfirmed').checked && entry.imps.length>0, note: $('eNote').value.trim() };
+  let sess = store.sessions.find(s=>s.date===entry.when.date && s.siteId===c.site.id && s.profileId===c.profile.id);
+  if(!sess){ sess = { id:uid(), date:entry.when.date, siteId:c.site.id, site:c.site, profileId:c.profile.id, profile:c.profile, weather:c.weather, note:'', shots:[] }; store.sessions.push(sess); }
+  sess.shots.push(shot);
+  if(!save()){ sess.shots.pop(); toast('eToast','저장하지 못했어요. 브라우저 저장공간을 확인해 주세요.'); return; }
+  openSession(sess.id); toast('sessToast','기록을 저장했어요');
+}
+
+/* 기록철 */
+function renderLog(){
+  const pf=$('fProfile'), st=$('fSite'); const pv=pf.value||'all', sv=st.value||'all';
+  const pIds=[...new Map(store.sessions.map(s=>[s.profileId, s.profile.name])).entries()];
+  const sIds=[...new Map(store.sessions.map(s=>[s.siteId, s.site.name])).entries()];
+  pf.innerHTML = `<option value="all">전체</option>` + pIds.map(([id,n])=>`<option value="${id}">${esc(n)}</option>`).join(''); pf.value = pIds.some(x=>x[0]===pv)?pv:'all';
+  st.innerHTML = `<option value="all">전체</option>` + sIds.map(([id,n])=>`<option value="${id}">${esc(n)}</option>`).join(''); st.value = sIds.some(x=>x[0]===sv)?sv:'all';
+  const flt = s => (pf.value==='all'||s.profileId===pf.value) && (st.value==='all'||s.siteId===st.value);
+  const sessions = store.sessions.filter(flt).sort((a,b)=> b.date.localeCompare(a.date));
+  $('sessionList').innerHTML = sessions.length ? sessions.map(s=>{
+    const n = s.shots.reduce((a,x)=>a+x.rounds,0), hits = s.shots.reduce((a,x)=>a+x.hits,0);
+    const rs = [...new Set(s.shots.map(x=>x.range))].sort((a,b)=>a-b);
+    return `<button class="item" type="button" data-sess="${s.id}"><span class="t"><span>${s.date}</span><span style="font-family:var(--mono);font-weight:500">${n}발 · 명중 ${hits}</span></span><span class="s">${esc(s.site.name)} · ${esc(s.profile.name)}</span><span class="s">거리 ${rs.join(', ')}m</span></button>`;
+  }).join('') : `<div class="empty">아직 기록이 없어요.<br>탄도계산 화면에서 "사격정보철" 버튼을 눌러 첫 기록을 남기세요.</div>`;
+  const rows = {};
+  store.sessions.filter(flt).forEach(s=>s.shots.forEach(sh=>{ if(!sh.confirmed) return; const t=trueCorrection(sh.used, groupStats(sh.impacts)); if(!t) return;
+    const k=sh.range; rows[k]=rows[k]||{ n:0, de:0, dw:0 }; rows[k].n++; rows[k].de+=t.elev-sh.calc.elev; rows[k].dw+=t.wind-sh.calc.wind; }));
+  const keys = Object.keys(rows).map(Number).sort((a,b)=>a-b);
+  $('summary').innerHTML = keys.length
+    ? `<div class="tablebox"><table><thead><tr><th>거리 m</th><th>기록 수</th><th>고각 오차 평균</th><th>편류 오차 평균</th></tr></thead><tbody>${keys.map(k=>{ const r=rows[k], de=r.de/r.n, dw=r.dw/r.n; return `<tr><td>${k}</td><td>${r.n}</td><td class="${errCls(de)}">${fS(de)}</td><td class="${errCls(dw)}">${fS(dw)}</td></tr>`; }).join('')}</tbody></table></div><p class="hint">오차 = 실제 필요했던 수정값 − 계산값 (MIL). 고각이 +면 계산보다 더 올려야 했다는 뜻이에요. 편류 오차에는 바람 판단 오차도 섞여 있어요.</p><button class="btn primary" type="button" id="goTrue">이 기록으로 보정하기 (제원입력)</button>`
+    : `<p class="hint">확인된 탄착이 있는 기록이 쌓이면, 거리별로 계산이 얼마나 맞았는지 여기에 모아 보여줘요.</p>`;
+}
+let delArm = null;
+function openSession(id){
+  const s = store.sessions.find(x=>x.id===id); if(!s){ show('log'); return; }
+  $('view-session').dataset.id = id;
+  const w = s.weather;
+  $('sessHead').innerHTML = `<h2>사격일지 <span style="font-family:var(--mono);letter-spacing:0">${s.date}</span></h2>
+    <div style="font-weight:600">${esc(s.site.name)} <span style="font-weight:400;color:var(--muted)">· 고도 ${s.site.alt}m</span></div>
+    <div class="derived"><span>${esc(s.profile.name)}</span><span>초속 <b>${s.profile.mv} m/s</b></span><span>BC <b>${s.profile.bc} ${s.profile.model}</b></span></div>
+    <div class="derived"><span>첫 기록 기상</span><span>기온 <b>${w.temp}°C</b></span><span>습도 <b>${w.hum}%</b></span><span>현지기압 <b>${w.station} hPa</b></span><span>밀도고도 <b>${w.da} m</b></span></div>
+    <label>메모<input id="sessNote" type="text" value="${esc(s.note)}" placeholder="사격일지 메모"></label>`;
+  $('sessNote').addEventListener('change', e=>{ s.note=e.target.value; save(); toast('sessToast','메모를 저장했어요'); });
+  const shots = [...s.shots].sort((a,b)=>b.time.localeCompare(a.time));
+  $('sessShots').innerHTML = `<h2>사격 기록 <span style="letter-spacing:0;font-weight:400">${shots.length}건</span></h2>` + shots.map(sh=>{
+    const g=groupStats(sh.impacts), t=trueCorrection(sh.used,g);
+    return `<div class="shot"><svg data-mini="${sh.id}" aria-hidden="true"></svg><div>
+      <div class="l1">${sh.time} · ${sh.range}m · ${sh.rounds}발 / 명중 ${sh.hits}${sh.score!=null?` · ${sh.score}점`:''}${sh.confirmed?'':' <span class="flag">보정 제외</span>'}</div>
+      <div class="l2">고각 계산 ${fE(sh.calc.elev)} → 조정 ${fE(sh.used.elev)}${t?` → 실제 ${fE(t.elev)} <b class="${errCls(t.elev-sh.calc.elev)}">(${fS(t.elev-sh.calc.elev)})</b>`:''}</div>
+      <div class="l2">편류 계산 ${fW(sh.calc.wind)} → 조정 ${fW(sh.used.wind)}${t?` → 실제 ${fW(t.wind)} <b class="${errCls(t.wind-sh.calc.wind)}">(${fS(t.wind-sh.calc.wind)})</b>`:''}</div>
+      <div class="l3">${sh.target?`${TARGET_TYPES[sh.target.type].name} ${sh.target.w}×${sh.target.h}cm · `:''}${g?`그룹 ${g.es.toFixed(2)} MIL (${(g.es*sh.range/10).toFixed(1)} cm) · `:''}바람 ${sh.windSpeed} m/s ${sh.windClock}시 · 기온 ${sh.weather.temp}°C${sh.moa?` · 사수 ${sh.moa} MOA (허용범위 안 ${sh.impacts.filter(p=>Math.hypot(p.x,p.y)<=moaToMil(sh.moa)/2).length}/${sh.impacts.length})`:''}${sh.mvMeasured?` · 실측 초속 ${sh.mvMeasured}`:''}${sh.note?` · ${esc(sh.note)}`:''}</div>
+      <button class="btn danger" type="button" data-delshot="${sh.id}" style="margin-top:6px;padding:4px 10px;font-size:.76rem">기록 삭제</button>
+    </div></div>`; }).join('');
+  shots.forEach(sh=>{ const el=document.querySelector(`[data-mini="${sh.id}"]`); drawTarget(el, sh.impacts, sh.range, sh.target||null, true, { moa: sh.moa }); });
+  $('sessDel').textContent='이 사격일지 삭제'; delArm=null;
+  show('session');
+}
+
+/* 화면 전환 */
+function show(v){
+  ['calc','entry','log','session','set'].forEach(k=>{ $('view-'+k).hidden = k!==v; });
+  const tab = v==='entry'?'calc': v==='session'?'log': v;
+  document.querySelectorAll('.tabbar button').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.tab===tab)));
+  if(v==='log') renderLog();
+  if(v==='set'){ renderTrueHead(); }
+  window.scrollTo(0,0);
+}
+
+/* 보정 (Truing) */
+let tr = null; // { excluded:Set, result, shots }
+function truingShots(){
+  const pid = store.cur.profile, out = [];
+  store.sessions.filter(s=>s.profileId===pid).forEach(s=>s.shots.forEach(sh=>{
+    if(!sh.confirmed) return; const t = trueCorrection(sh.used, groupStats(sh.impacts)); if(!t) return;
+    out.push({ id:sh.id, date:s.date, time:sh.time, site:s.site.name, range:sh.range, temp:sh.weather.temp, hum:sh.weather.hum||0, station:sh.weather.station,
+      windSpeed:sh.windSpeed, windClock:sh.windClock, incline:sh.incline, cor: s.site.cor ? { lat:s.site.lat, az:s.site.az } : null, obsElev:t.elev });
+  }));
+  return out.sort((a,b)=> (a.date+a.time).localeCompare(b.date+b.time));
+}
+function renderTrueHead(){
+  const p = curProfile();
+  $('trHead').innerHTML = `<span>${esc(p.name)}</span><span>버전 <b>v${p.ver||1}</b></span><span>초속 <b>${p.mv} m/s</b></span><span>BC <b>${p.bc} ${p.model}</b></span><span>확인된 기록 <b>${truingShots().length}건</b></span>`;
+  const vs = p.versions || [];
+  $('trHist').innerHTML = vs.length ? `<div class="k" style="font-size:.74rem;color:var(--muted);margin-top:4px">버전 이력</div>` + [...vs].reverse().map(v=>`<div class="hist"><div><b>v${v.v}</b> · ${v.date} · ${esc(v.note)}<div class="m">초속 ${v.mv} m/s · BC ${v.bc}</div></div>${(p.ver||1)===v.v?'<span class="band">현재</span>':`<button class="btn" type="button" data-rollback="${v.v}" style="padding:5px 10px;font-size:.76rem">이 버전으로 되돌리기</button>`}</div>`).join('') : '';
+}
+function runTruing(){
+  const p = curProfile(); const all = truingShots();
+  if(!tr) tr = { excluded:new Set() };
+  const shots = all.filter(sh=>!tr.excluded.has(sh.id));
+  if(!all.length){ $('trOut').innerHTML = `<p class="hint">이 프로필로 남긴 확인된 탄착 기록이 없어요. 사격정보철에서 탄착을 찍고 "확인된 탄착"을 체크한 기록이 필요해요. 거리별로 3건 이상, 근거리(초음속)와 원거리를 함께 쌓으면 좋아요.</p>`; return; }
+  if(!shots.length){ renderTrueOut(p, all, null); return; }
+  $('trRun').disabled = true; $('trRun').textContent = '계산 중… (몇 초 걸려요)';
+  setTimeout(()=>{
+    let res = null;
+    try{ res = trueProfile(p, shots); }catch(e){ $('trOut').innerHTML = '<p class="hint">보정 계산에 실패했어요. 프로필 제원과 기록 입력값을 확인해 주세요.</p>'; }
+    $('trRun').disabled = false; $('trRun').textContent = '기록으로 보정 계산';
+    if(res){ tr.result = res; renderTrueOut(p, all, res); }
+  }, 30);
+}
+function renderTrueOut(p, all, res){
+  const byId = res ? Object.fromEntries(res.rows.map(r=>[r.id,r])) : {};
+  const tiles = res ? `<div class="tiles">
+      <div class="tile"><span class="k">초속</span><span class="v">${p.mv} → ${res.mv.toFixed(1)}</span><span class="d">${fS(res.mv-p.mv,1)} m/s · 기록 ${res.nNear}건</span></div>
+      <div class="tile"><span class="k">BC (${p.model})</span><span class="v">${p.bc} → ${res.bc.toFixed(3)}</span><span class="d">${fS((res.bc/p.bc-1)*100,1)}% · 기록 ${res.nFar}건</span></div>
+      <div class="tile"><span class="k">고각 오차 RMS</span><span class="v">${res.rmsBefore.toFixed(2)} → ${res.rmsAfter.toFixed(2)}</span><span class="d">MIL</span></div>
+      <div class="tile"><span class="k">사용한 기록</span><span class="v">${res.rows.length} / ${all.length}건</span><span class="d">체크 해제한 기록은 제외</span></div>
+    </div>` : `<p class="hint">모든 기록을 제외했어요. 보정에 쓸 기록을 하나 이상 체크하세요.</p>`;
+  const warn = res && res.warnings.length ? `<ul class="warns">${res.warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>` : '';
+  const table = `<div class="tablebox"><table class="compact"><thead><tr><th>사용</th><th>거리</th><th>구간</th><th>실제</th><th>전</th><th>후</th></tr></thead><tbody>${all.map(sh=>{ const r=byId[sh.id]; const inc=!tr.excluded.has(sh.id);
+      return `<tr><td><input type="checkbox" data-trinc="${sh.id}" ${inc?'checked':''} aria-label="${sh.date} ${sh.range}m 기록 사용" style="width:20px;height:20px"></td><td>${sh.range}m<div style="font-size:.68rem;color:var(--muted)">${sh.date.slice(5)} ${sh.time}</div></td><td>${r?`<span class="band">${r.band==='mv'?'초속':'BC'}</span>`:'—'}</td><td>${fE(sh.obsElev)}</td><td class="${r?errCls(r.before-r.obs):''}">${r?fS(r.before-r.obs):'—'}</td><td class="${r?errCls(r.after-r.obs):''}">${r?fS(r.after-r.obs):'—'}</td></tr>`; }).join('')}</tbody></table></div>
+    <p class="hint">보정 전·후 열은 계산 고각 − 실제 필요 고각 (MIL)이에요.</p>`;
+  let dope = '';
+  if(res){
+    const w = last ? last.weather : { temp:15, hum:0, station:1013.25 };
+    const ranges = [100,200,300,400,500,600,700,800,900,1000];
+    const mk = over => solve({ model:p.model, bc:over.bc, weightGr:p.wt, diamIn:p.dia, lengthIn:p.len, mvMs:over.mv, sightHeightIn:p.sh, zeroRangeM:p.zero, twistIn:p.twist,
+      atmo:{ tempC:w.temp, pressHpa:w.station, humidity:w.hum }, ranges }).rows;
+    const A = mk({ mv:p.mv, bc:p.bc }), B = mk({ mv:res.mv, bc:res.bc });
+    dope = `<div class="k" style="font-size:.74rem;color:var(--muted)">사거리표 비교 (현재 탄도계산 기상: ${w.temp}°C · 현지기압 ${w.station} hPa, 무풍)</div>
+      <div class="tablebox"><table><thead><tr><th>거리 m</th><th>보정 전</th><th>보정 후</th><th>차이</th></tr></thead><tbody>${ranges.map((R,i)=>`<tr><td>${R}</td><td>${fE(A[i].elevMil)}</td><td>${fE(B[i].elevMil)}</td><td class="${errCls(B[i].elevMil-A[i].elevMil)}">${fS(B[i].elevMil-A[i].elevMil)}</td></tr>`).join('')}</tbody></table></div>
+      <div class="row"><button class="btn primary wide" type="button" id="trSave">새 버전으로 저장 (v${(p.ver||1)+1})</button><button class="btn" type="button" id="trCancel">취소</button></div>`;
+  }
+  $('trOut').innerHTML = tiles + warn + table + dope;
+}
+function saveTruing(){
+  const p = curProfile(), res = tr && tr.result; if(!res) return;
+  p.versions = p.versions && p.versions.length ? p.versions : [{ v:p.ver||1, date:today(), mv:p.mv, bc:p.bc, note:'보정 전 제원' }];
+  const v = Math.max(...p.versions.map(x=>x.v)) + 1;
+  p.mv = +res.mv.toFixed(1); p.bc = +res.bc.toFixed(4); p.ver = v;
+  p.versions.push({ v, date:today(), mv:p.mv, bc:p.bc, note:`기록 ${res.rows.length}건으로 보정 · RMS ${res.rmsBefore.toFixed(2)}→${res.rmsAfter.toFixed(2)} MIL` });
+  save(); tr = null; $('trOut').innerHTML=''; showProfile(p); renderTrueHead(); compute(); toast('trToast', `v${v}로 저장했어요`);
+}
+function rollback(vNum){
+  const p = curProfile(); const v = (p.versions||[]).find(x=>x.v===vNum); if(!v) return;
+  p.mv = v.mv; p.bc = v.bc; p.ver = v.v; save(); tr=null; $('trOut').innerHTML=''; showProfile(p); renderTrueHead(); compute(); toast('trToast', `v${v.v}로 되돌렸어요`);
+}
+
+/* 백업 */
+function exportBackup(){ $('bkText').value = JSON.stringify({ app:'k14calc', v:1, exported:new Date().toISOString(), data:{ profiles:store.profiles, sites:store.sites, sessions:store.sessions } }); toast('bkToast','백업 문자열을 만들었어요'); }
+async function copyBackup(){ const t=$('bkText'); if(!t.value) exportBackup(); try{ await navigator.clipboard.writeText(t.value); toast('bkToast','복사했어요'); }catch(e){ t.focus(); t.select(); toast('bkToast','전체 선택했어요. 길게 눌러 복사하세요'); } }
+function importBackup(){
+  try{ const o=JSON.parse($('bkText').value); if(o.app!=='k14calc' || !o.data || !Array.isArray(o.data.profiles) || !o.data.profiles.length) throw 0;
+    store.profiles=o.data.profiles; store.sites=(o.data.sites&&o.data.sites.length)?o.data.sites:[DEFAULT_SITE]; store.sessions=o.data.sessions||[];
+    store.cur={ profile:store.profiles[0].id, site:store.sites[0].id }; save();
+    fillProfiles(); fillSites(); showProfile(curProfile()); showSite(curSite()); compute(); toast('bkToast',`복원했어요 · 사격일지 ${store.sessions.length}개`);
+  }catch(e){ toast('bkToast','복원하지 못했어요. 이 앱에서 만든 백업 문자열 전체를 붙여넣었는지 확인하세요'); }
+}
+
+/* 이벤트 */
+function bind(){
+  ['range','windSpeed','windClock','incline','siteName','siteAlt','siteLat','siteAz','useCor','temp','hum','press','pfName','pfModel','pfBc','pfMv','pfWt','pfDia','pfLen','pfSh','pfZero','pfTwist','pfClick','pfSpin']
+    .forEach(id=>$(id).addEventListener('input', schedule));
+  $('pMode').addEventListener('change', ()=>{ syncPressUI(); schedule(); });
+  $('rangeDown').addEventListener('click', ()=>{ $('range').value=Math.max(50,(num('range')||0)-10); compute(); });
+  $('rangeUp').addEventListener('click', ()=>{ $('range').value=Math.min(1500,(num('range')||0)+10); compute(); });
+  $('nightBtn').addEventListener('click', ()=>{ store.night=!store.night; applyNight(); save(); });
+  $('profileSel').addEventListener('change', e=>{ store.cur.profile=e.target.value; showProfile(curProfile()); save(); compute(); });
+  $('pfSave').addEventListener('click', ()=>{ Object.assign(curProfile(), readProfile()); fillProfiles(); save(); toast('pfToast','저장했어요'); compute(); });
+  $('pfCopy').addEventListener('click', ()=>{ const n={ ...readProfile(), id:uid() }; n.name+=' (복사)'; store.profiles.push(n); store.cur.profile=n.id; fillProfiles(); showProfile(n); save(); toast('pfToast','새 프로필을 만들었어요'); compute(); });
+  $('pfDel').addEventListener('click', ()=>{ if(store.profiles.length<2){ toast('pfToast','프로필은 하나 이상 있어야 해요'); return; } store.profiles=store.profiles.filter(p=>p.id!==store.cur.profile); store.cur.profile=store.profiles[0].id; fillProfiles(); showProfile(curProfile()); save(); toast('pfToast','삭제했어요 · 기존 기록은 남아 있어요'); compute(); });
+  $('siteSel').addEventListener('change', e=>{ store.cur.site=e.target.value; showSite(curSite()); save(); compute(); });
+  $('siteSave').addEventListener('click', ()=>{ Object.assign(curSite(),{ name:$('siteName').value.trim()||'이름 없는 사격장', alt:num('siteAlt')||0, lat:num('siteLat')||0, az:num('siteAz')||0, cor:$('useCor').checked }); fillSites(); save(); compute(); toast('siteToast','저장했어요'); });
+  $('siteNew').addEventListener('click', ()=>{ const s={ id:uid(), name:'새 사격장', alt:num('siteAlt')||0, lat:num('siteLat')||37.4, az:0, cor:false }; store.sites.push(s); store.cur.site=s.id; fillSites(); showSite(s); $('siteName').focus(); $('siteName').select(); save(); toast('siteToast','이름과 고도를 입력하고 저장하세요'); });
+  $('siteDel').addEventListener('click', ()=>{ if(store.sites.length<2){ toast('siteToast','사격장은 하나 이상 있어야 해요'); return; } store.sites=store.sites.filter(s=>s.id!==store.cur.site); store.cur.site=store.sites[0].id; fillSites(); showSite(curSite()); save(); toast('siteToast','삭제했어요'); compute(); });
+
+  $('sendBtn').addEventListener('click', openEntry);
+  $('entryBack').addEventListener('click', ()=>show('calc'));
+  $('target').addEventListener('click', targetTap);
+  document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click', ()=>{ setTargetType(b.dataset.tt); store.targetPref={...entry.target}; save(); }));
+  $('tW').addEventListener('input', readTargetSize); $('tH').addEventListener('input', readTargetSize);
+  $('eHits').addEventListener('input', ()=>{ entry.hitsManual = true; });
+  $('eMoa').addEventListener('input', ()=>{ const v=num('eMoa'); store.shooterMoa = v>0 ? v : null; save(); renderEntry(); });
+  $('zIn').addEventListener('click', ()=>{ entry.zoom = Math.min(4, +(entry.zoom*1.5).toFixed(3)); renderEntry(); });
+  $('zOut').addEventListener('click', ()=>{ entry.zoom = Math.max(0.2, +(entry.zoom/1.5).toFixed(3)); renderEntry(); });
+  $('tUndo').addEventListener('click', ()=>{ entry.imps.pop(); renderEntry(); });
+  $('tClear').addEventListener('click', ()=>{ entry.imps=[]; renderEntry(); });
+  ['eUsedElev','eUsedElevDir','eUsedWind','eUsedWindDir','eRounds'].forEach(id=>$(id).addEventListener('input', renderEntry));
+  $('eSave').addEventListener('click', saveEntry);
+
+  document.querySelectorAll('.tabbar button').forEach(b=>b.addEventListener('click', ()=>show(b.dataset.tab)));
+  $('fProfile').addEventListener('change', renderLog); $('fSite').addEventListener('change', renderLog);
+  $('sessionList').addEventListener('click', e=>{ const b=e.target.closest('[data-sess]'); if(b) openSession(b.dataset.sess); });
+  $('sessBack').addEventListener('click', ()=>show('log'));
+  $('sessShots').addEventListener('click', e=>{ const b=e.target.closest('[data-delshot]'); if(!b) return;
+    if(b.dataset.armed!=='1'){ b.dataset.armed='1'; b.textContent='한 번 더 누르면 삭제'; return; }
+    const s=store.sessions.find(x=>x.id===$('view-session').dataset.id); s.shots=s.shots.filter(x=>x.id!==b.dataset.delshot);
+    if(!s.shots.length){ store.sessions=store.sessions.filter(x=>x.id!==s.id); save(); show('log'); return; }
+    save(); openSession(s.id); toast('sessToast','기록을 삭제했어요'); });
+  $('sessDel').addEventListener('click', ()=>{ const id=$('view-session').dataset.id;
+    if(delArm!==id){ delArm=id; $('sessDel').textContent='한 번 더 누르면 사격일지 전체 삭제'; return; }
+    store.sessions=store.sessions.filter(x=>x.id!==id); save(); show('log'); });
+  $('trRun').addEventListener('click', ()=>{ tr = tr || { excluded:new Set() }; runTruing(); });
+  $('trOut').addEventListener('change', e=>{ const c=e.target.closest('[data-trinc]'); if(!c) return; if(c.checked) tr.excluded.delete(c.dataset.trinc); else tr.excluded.add(c.dataset.trinc); runTruing(); });
+  $('trOut').addEventListener('click', e=>{ if(e.target.id==='trSave') saveTruing(); if(e.target.id==='trCancel'){ tr=null; $('trOut').innerHTML=''; } });
+  $('trHist').addEventListener('click', e=>{ const b=e.target.closest('[data-rollback]'); if(b) rollback(+b.dataset.rollback); });
+  $('summary').addEventListener('click', e=>{ if(e.target.id==='goTrue'){ show('set'); tr={ excluded:new Set() }; runTruing(); setTimeout(()=>$('trueCard').scrollIntoView({behavior:'smooth'}), 50); } });
+  $('profileSel').addEventListener('change', ()=>{ tr=null; $('trOut').innerHTML=''; renderTrueHead(); });
+  $('bkExport').addEventListener('click', exportBackup); $('bkCopy').addEventListener('click', copyBackup); $('bkImport').addEventListener('click', importBackup);
+}
+function applyNight(){ $('app').dataset.night = store.night?'1':'0'; $('nightBtn').setAttribute('aria-pressed', String(!!store.night)); }
+
+load(); fillClock(); fillProfiles(); fillSites(); showProfile(curProfile()); showSite(curSite());
+if(store.field){ const f=store.field; $('range').value=f.range; $('windSpeed').value=f.windSpeed; $('windClock').value=f.windClock; $('incline').value=f.incline; $('temp').value=f.temp; $('hum').value=f.hum; $('pMode').value=f.pMode; $('press').value=f.press; }
+applyNight(); syncPressUI(); bind(); show('calc'); compute();
+</script>
+<script>
+(function(){
+  var sw = document.getElementById('swState'), st = document.getElementById('storeState');
+  function set(t){ if(sw) sw.innerHTML = t; }
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').then(function(){ return navigator.serviceWorker.ready; })
+      .then(function(){ set('<b>오프라인 사용 준비 완료</b>'); })
+      .catch(function(){ set('오프라인 준비 실패 · 인터넷이 될 때 다시 열어 주세요'); });
+  } else { set('이 브라우저는 오프라인 사용을 지원하지 않아요'); }
+  if(navigator.storage && navigator.storage.persist){
+    navigator.storage.persist().then(function(ok){ if(st) st.textContent = ok ? '저장공간 유지 요청이 승인됐어요. 그래도 백업은 주기적으로 해 두세요.' : '브라우저가 저장공간 유지를 보장하지 않아요. 백업 문자열을 주기적으로 보관하세요.'; }).catch(function(){});
+  }
+})();
+</script>
+</body>
+</html>
